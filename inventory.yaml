@@ -1,0 +1,18 @@
+all:
+  hosts:
+    vps:
+      ansible_host: 51.51.51.51
+  vars:
+    ansible_user: root
+    ansible_ssh_private_key_file: ~/.ssh/my_ssh_key
+    wireguard_address: 10.42.42.1
+    wireguard_protocol: udp
+    wireguard_port: 443
+    wireguard_publ_peers: 
+      - <list_of_base64_public_keys>
+    timezone: "Europe/Amsterdam"
+    static_dns: "1.1.1.1"
+    pihole_image: "pihole/pihole:latest"
+    pihole_ftl_max_db_days: "180"
+    pihole_webpassword: password # example value, change it and better use ansible-vault
+    pihole_dns: "1.1.1.1;1.0.0.1"

@@ -1,0 +1,13 @@
+[Interface]
+PrivateKey = {{ priv_key_content }}
+Address = {{ wireguard_address }}/24
+ListenPort = {{ wireguard_port }}
+PostUp = /etc/wireguard/ifup.sh
+PostDown = /etc/wireguard/ifdown.sh
+ 
+{% for peer in wireguard_publ_peers %}
+[Peer]
+PublicKey = {{ peer }}
+AllowedIPs = {{ '.'.join(wireguard_address.split('.')[:3]) }}.{{ loop.index + 1 }}/32
+
+{% endfor %}

@@ -1,0 +1,50 @@
+- name: Install packages = wireguard-tools
+  ansible.builtin.package:
+    name: wireguard-tools
+    state: latest
+    update_cache: yes
+
+# Copy a template file for ifup.sh
+- name: Copy ifup.sh template
+  template:
+    src: ifup.j2
+    dest: "/etc/wireguard/ifup.sh"
+    mode: 0750       
+
+# Copy a template file for ifdown.sh
+- name: Copy ifdown.sh template
+  template:
+    src: ifdown.j2
+    dest: "/etc/wireguard/ifdown.sh"
+    mode: 0750    
+
+# Copy private key
+- name: Copy private key
+  ansible.builtin.copy:
+    src: keys/priv.key
+    dest: /etc/wireguard/
+
+# Copy public key
+- name: Copy public key
+  ansible.builtin.copy:
+    src: keys/pub.key
+    dest: /etc/wireguard/
+
+# read priv as variable
+- name: Create fact for private key
+  set_fact:
+    priv_key_content: "{{lookup('file', 'keys/priv.key') }}"
+# - debug: msg="the value of  is {{lookup('file', 'keys/priv.key') }}"
+  
+# Use template file and jinja to generate config
+- name: Copy the Wireguard config template
+  template:
+    src: wg0.j2
+    dest: "/etc/wireguard/wg0.conf"
+    mode: 0600
+
+- name: Start and enable Wireguard
+  service: 
+    name: wg-quick@wg0
+    enabled: yes
+    state: restarted

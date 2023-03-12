@@ -1,0 +1,31 @@
+- name: Update Arch Linux system 
+  pacman:
+    update_cache: yes
+    upgrade: yes
+  when: ansible_distribution == "Archlinux"
+
+- name: Update Ubuntu system 
+  apt:
+    update_cache: yes
+    upgrade: yes
+  when: ansible_distribution == "Ubuntu"
+
+- name: Check if reboot required on Ubuntu
+  stat:
+    path: /var/run/reboot-required
+  register: reboot_required_file
+  when: ansible_distribution == "Ubuntu"
+
+# - debug: msg="reboot_required_file -> {{ reboot_required_file }}"
+- name: Reboot if required
+  reboot:
+  when: reboot_required_file.stat.exists == true
+
+- name: Install packages = htop, tmux, vim
+  ansible.builtin.package:
+    name:
+      - htop
+      - tmux
+      - vim
+    state: latest
+    update_cache: yes

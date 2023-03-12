@@ -1,0 +1,73 @@
+- name: Create pihole directory
+  file:
+    path: "/home/{{ ansible_user }}/pihole"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    state: directory
+    mode: 0755
+
+- name: Set FTLCONF_REPLY_ADDR (single mode)
+  set_fact:
+    ftlconf_reply_addr4: "{{ wireguard_address }}"
+    execution_mode: "single node setup"
+
+- name: pull pihole container
+  docker_image:
+    name: "{{ pihole_image }}"
+    source: pull
+    force_source: yes
+
+- name: Stop and disable systemd-resolved
+  service: 
+    name: systemd-resolved
+    enabled: no
+    state: stopped
+
+- name: Start/Update pihole container
+  docker_container:
+    name: pihole
+    image: "{{ pihole_image }}"
+    pull: no
+    restart_policy: unless-stopped
+    env:
+      TZ: "{{ timezone }}"
+      WEBPASSWORD: "{{ pihole_webpassword }}"
+      WEBTHEME: "default-dark"
+      PIHOLE_DNS_: "{{ pihole_dns }}"
+      DNS_BOGUS_PRIV: "true"
+      DNS_FQDN_REQUIRED: "true"
+      DNSMASQ_LISTENING: "local"
+      IPv6: "false"
+      FTLCONF_REPLY_ADDR4: "{{ ftlconf_reply_addr4 }}"
+      FTLCONF_MAXDBDAYS: "{{ pihole_ftl_max_db_days }}"
+    dns_servers:
+      - 127.0.0.1
+      - "{{ static_dns }}"
+    network_mode: host
+    volumes:
+      - "/home/{{ ansible_user }}/pihole/pihole/:/etc/pihole/"
+      - "/home/{{ ansible_user }}/pihole/dnsmasq.d/:/etc/dnsmasq.d/"
+    log_driver: json-file
+    log_options:
+      max-size: "10m"
+      max-file: "5"
+  
+- name: Check pihole container
+  uri:
+    url: http://localhost
+  register: result
+  until: result.status == 200
+  retries: 3
+  delay: 5
+
+- name: Remove old image versions
+  docker_prune:
+    images: yes
+    images_filters:
+      dangling: false
+
+- name: INFORMATION
+  debug:
+    msg:
+      - "In the {{ execution_mode }} make sure to point your DNS server settings here:"
+      - "DNSv4: {{ ftlconf_reply_addr4 }}"

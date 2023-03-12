@@ -1,0 +1,77 @@
+# Some Firewall settings
+- name: Update IPtables -- ACCEPT loopback
+  ansible.builtin.iptables:
+    action: append
+    chain: INPUT
+    in_interface: lo
+    ip_version: ipv4
+    jump: ACCEPT
+
+- name: Update IPtables -- ACCEPT RELATED,ESTABLISHED
+  ansible.builtin.iptables:
+    action: append
+    chain: INPUT
+    destination: "{{ ansible_default_ipv4.address }}"
+    ip_version: ipv4
+    ctstate: ESTABLISHED,RELATED
+    jump: ACCEPT
+
+- name: Update IPtables -- ACCEPT ssh port 22
+  ansible.builtin.iptables:
+    action: append
+    chain: INPUT
+    destination: "{{ ansible_default_ipv4.address }}"
+    protocol: tcp
+    destination_port: '22'
+    ip_version: ipv4
+    jump: ACCEPT
+
+- name: Update IPtables -- ACCEPT wireguard on {{ wireguard_protocol }} port {{ wireguard_port }}
+  ansible.builtin.iptables:
+    action: append
+    chain: INPUT
+    destination: "{{ ansible_default_ipv4.address }}"
+    protocol: "{{ wireguard_protocol }}"
+    destination_port: "{{ wireguard_port }}"
+    ip_version: ipv4
+    jump: ACCEPT
+
+# Enable logging 
+- name: Enable Logging before DROP
+  ansible.builtin.iptables:
+    action: append
+    ip_version: ipv4
+    chain: INPUT
+    limit: 2/min
+    log_prefix: "#iptables "
+    log_level: 4
+    jump: LOG
+
+- name: Update IPtables -- INPUT DROP
+  ansible.builtin.iptables:
+    action: append
+    ip_version: ipv4
+    chain: INPUT
+    jump: DROP
+
+# No need for IPv6
+- name: Update IP6tables -- INPUT policy DROP
+  ansible.builtin.iptables:
+    action: append
+    ip_version: ipv6
+    chain: INPUT
+    policy: DROP
+
+- name: Update IP6tables -- FORWARD policy DROP
+  ansible.builtin.iptables:
+    action: append
+    ip_version: ipv6
+    chain: FORWARD
+    policy: DROP 
+
+- name: Update IP6tables -- OUTPUT policy DROP
+  ansible.builtin.iptables:
+    action: append
+    ip_version: ipv6
+    chain: OUTPUT
+    policy: DROP 

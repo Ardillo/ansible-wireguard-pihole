@@ -1,0 +1,78 @@
+---
+# play 1
+- name: Build wireguard and pihole
+
+  # Hosts: where our play will run and options it will run with
+  hosts: all
+  # gather_facts: no
+
+  roles:
+    - role: bootstrap
+      tags: bootstrap
+    - role: docker
+      tags: docker
+    - role: wireguard
+      tags: wireguard
+    - role: firewall
+      tags: firewall
+    - role: pihole
+      tags: pihole
+
+
+  # Vars: variables that will apply to the play, on all target systems
+
+  # Tasks: the list of tasks that will be executed within the play, this section
+  # can also be used for pre and post tasks
+  tasks:
+    # Copy a ip_forward setting file and set variable via command
+    - name: Copy ip_forward setting file
+      ansible.builtin.copy:
+        src: files/99-wireguard.conf
+        dest: /etc/sysctl.d/
+
+    # read ip_forward as fact
+    - name: Create fact for ip_forward
+      set_fact:
+        ip_forward: "{{ lookup('pipe', 'sysctl -n net.ipv4.ip_forward') }}"
+    - debug: msg="ip_forward -> {{ lookup('pipe', 'sysctl -n net.ipv4.ip_forward') }}"
+
+    # based on output, set forward
+    - name: Set ip_forward to 1
+      ansible.builtin.command:
+        cmd: "sysctl -w net.ipv4.ip_forward=1"
+      when: not ip_forward
+
+    - name: Save Firewall settings 
+      tags: save_firewall
+      block:
+      - name: make sure iptables dir exist
+        ansible.builtin.file:
+          path: /etc/iptables/
+          state: directory
+          mode: 750
+
+      - name: Save IPv4 iptables
+        ansible.builtin.shell:
+          chdir: /etc/iptables/
+          cmd: "iptables-save > rules.v4"
+
+      - name: Save IPv6 iptables
+        ansible.builtin.shell:
+          chdir: /etc/iptables/
+          cmd: "ip6tables-save > rules.v6"
+
+    # - name: Check Services 
+    #   tags: check_services
+    #   block:
+    #   - name: get services
+    #     ansible.builtin.service_facts:
+
+    #   - name: Debug services
+    #     debug:
+    #       var: "{{ item.service }}"
+    #     with_items:
+    #       - { service: docker.service }
+    #       - { service: wg-quick@wg0 }
+
+# Three dots indicate the end of a YAML document
+...

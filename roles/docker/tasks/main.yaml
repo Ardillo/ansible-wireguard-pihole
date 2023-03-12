@@ -1,0 +1,31 @@
+- name: Arch - Install packages = docker, docker-compose
+  ansible.builtin.package:
+    name:
+      - docker
+      - docker-compose
+      - python-setuptools
+      - python-pip
+    state: latest
+    update_cache: yes
+  when: ansible_distribution == "Archlinux"
+
+- name: Ubuntu - Install packages = docker, docker-compose
+  ansible.builtin.package:
+    name:
+      - docker.io
+      - docker-compose
+      - python3-setuptools
+      - python3-pip
+    state: latest
+    update_cache: yes
+  when: ansible_distribution == "Ubuntu"
+
+- name: Install Docker SDK for Python
+  pip:
+    name: docker
+
+- name: Check daemon
+  service:
+    name: docker
+    enabled: yes
+    state: restarted
